@@ -2,7 +2,7 @@ import streamlit as st
 from langchain_groq import ChatGroq
 from langchain_community.utilities import ArxivAPIWrapper,WikipediaAPIWrapper
 from langchain_community.tools import ArxivQueryRun,WikipediaQueryRun,DuckDuckGoSearchRun
-from langchain.agents import AgentType
+from langchain.agents.agent_types import AgentType
 from langchain.agents.initialize import initialize_agent
 from langchain.callbacks import StreamlitCallbackHandler
 import os
@@ -54,4 +54,5 @@ if prompt:=st.chat_input(placeholder="What is machine learning?"):
         response=search_agent.run(st.session_state.messages,callbacks=[st_cb])
         st.session_state.messages.append({'role':'assistant',"content":response})
         st.write(response)
+
 
