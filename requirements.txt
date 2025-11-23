@@ -12,7 +12,7 @@ langchain-openai
 chromadb
 sentence_transformers
 langchain_huggingface
-faiss-cuda
+faiss-cpu
 langchain_chroma
 duckdb
 pandas
@@ -30,5 +30,6 @@ unstructured
 pytube
 numexpr
 huggingface_hub
+
 
 
