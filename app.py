@@ -1,16 +1,14 @@
-
-
-
-
 import streamlit as st
 from langchain_groq import ChatGroq
-from langchain.chains import LLMMathChain, LLMChain
+from langchain_experimental.math import LLMMathChain
+from langchain.chains import LLMChain           # still works for simple chains
 from langchain.prompts import PromptTemplate
 from langchain_community.utilities import WikipediaAPIWrapper
 from langchain.tools import Tool
 from langchain.callbacks import StreamlitCallbackHandler
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
+
 
 
 # Streamlit UI
@@ -110,3 +108,4 @@ if st.button("Find my answer"):
 
     else:
         st.warning("Please enter a question.")
+
