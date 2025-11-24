@@ -95,7 +95,7 @@ if prompt := st.chat_input(placeholder="Ask me anything…"):
     # --------------------------------------------------------------
     llm = ChatGroq(
         groq_api_key=api_key,
-        model="llama3-8b-8192",          # you can also use "llama3-8b-8192", etc.
+        model="llama-3.1-8b-instant",          # you can also use "llama3-8b-8192", etc.
         streaming=True,
         # 👇 THIS ENABLES FUNCTION‑CALLING / TOOL USAGE
         tool_choice="auto",
@@ -129,4 +129,5 @@ if prompt := st.chat_input(placeholder="Ask me anything…"):
             {"role": "assistant", "content": response}
         )
         st.write(response)
+
 
