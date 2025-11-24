@@ -9,7 +9,7 @@ import os
 from dotenv import load_dotenv
 ## Code
 ####
-
+from langchain_google_genai import ChatGoogleGenerativeAI
 ## Arxiv and wikipedia Tools
 arxiv_wrapper=ArxivAPIWrapper(top_k_results=1, doc_content_chars_max=200)
 arxiv=ArxivQueryRun(api_wrapper=arxiv_wrapper)
@@ -28,7 +28,7 @@ Try more LangChain 🤝 Streamlit Agent examples at [github.com/langchain-ai/str
 
 ## Sidebar for settings
 st.sidebar.title("Settings")
-api_key=st.sidebar.text_input("Enter your Groq API Key:",type="password")
+#api_key=st.sidebar.text_input("Enter your Groq API Key:",type="password")
 
 if "messages" not in st.session_state:
     st.session_state["messages"]=[
@@ -42,8 +42,10 @@ if prompt:=st.chat_input(placeholder="What is machine learning?"):
     st.session_state.messages.append({"role":"user","content":prompt})
     st.chat_message("user").write(prompt)
 
-    llm=ChatGroq(groq_api_key=api_key,model_name="Llama3-8b-8192",streaming=True)
+    #llm=ChatGroq(groq_api_key=api_key,model_name="Llama3-8b-8192",streaming=True)
     #llm=ChatOllama(model="llama3.1:8b",streaming=True)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash")
+
     #from langchain_ollama import ChatOllama
     
     tools=[search,arxiv,wiki]
@@ -56,6 +58,7 @@ if prompt:=st.chat_input(placeholder="What is machine learning?"):
         response=search_agent.run(st.session_state.messages,callbacks=[st_cb])
         st.session_state.messages.append({'role':'assistant',"content":response})
         st.write(response)
+
 
 
 
