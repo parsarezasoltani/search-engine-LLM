@@ -49,7 +49,7 @@ if prompt:=st.chat_input(placeholder="What is machine learning?"):
 llm = ChatOllama(
     model="llama3.2",
     base_url="https://your-tunnel-url.trycloudflare.com"   # or http://your-vps-ip:11434
-)
+    )
     tools=[search,arxiv,wiki]
 
     search_agent=initialize_agent(tools,llm,
@@ -60,6 +60,7 @@ llm = ChatOllama(
         response=search_agent.run(st.session_state.messages,callbacks=[st_cb])
         st.session_state.messages.append({'role':'assistant',"content":response})
         st.write(response)
+
 
 
 
