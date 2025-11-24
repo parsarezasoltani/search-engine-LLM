@@ -20,8 +20,9 @@ from langchain_community.tools import (
     WikipediaQueryRun,
     DuckDuckGoSearchRun,
 )
-from langchain.agents import AgentExecutor, create_react_agent
-from langchain.callbacks import StreamlitCallbackHandler
+from langchain.agents import AgentExecutor
+from langchain.agents.react.agent import create_react_agent
+from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 
 # Load local `.env`
 load_dotenv()
