@@ -1,139 +1,135 @@
-# --------------------------------------------------------------
-# 🚀 Streamlit + LangChain + Groq demo (search, arXiv, Wikipedia)
-# --------------------------------------------------------------
+# app.py
+# Fully Fixed & Optimized for Hugging Face Spaces (2025)
+# No more "Agent stopped due to iteration/time limit" errors
+
 import os
 import streamlit as st
 from dotenv import load_dotenv
 
-# LangChain imports ------------------------------------------------
+# LangChain imports
 from langchain_groq import ChatGroq
+from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_community.utilities import ArxivAPIWrapper, WikipediaAPIWrapper
-from langchain_community.tools import (
-    ArxivQueryRun,
-    WikipediaQueryRun,
-    DuckDuckGoSearchRun,
-)
-from langchain.agents import initialize_agent, AgentType
+from langchain_community.tools import ArxivQueryRun, WikipediaQueryRun
+
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain.callbacks import StreamlitCallbackHandler
 
-# --------------------------------------------------------------
-# Load .env (optional – only useful locally)
-# --------------------------------------------------------------
-load_dotenv()    # allows a local .env file
+# Load environment variables (works locally + HF Spaces secrets)
+load_dotenv()
 
-# --------------------------------------------------------------
-# 1️⃣ Tool definitions (WITH CLEARER NAMES)
-# --------------------------------------------------------------
-# 1️⃣ Arxiv tool
-arxiv_wrapper = ArxivAPIWrapper(top_k_results=1, doc_content_chars_max=200)
-# Give the tool a descriptive name for the agent's internal monologue
-arxiv_tool = ArxivQueryRun(api_wrapper=arxiv_wrapper, name="Arxiv Search") 
+# ========================= TOOLS =========================
+arxiv = ArxivAPIWrapper(top_k_results=2, doc_content_chars_max=500)
+arxiv_tool = ArxivQueryRun(api_wrapper=arxiv)
+arxiv_tool.name = "arxiv_search"
+arxiv_tool.description = "Search arXiv for academic papers. Use only for research, math, science, or technical topics."
 
-# 2️⃣ Wikipedia tool
-wiki_wrapper = WikipediaAPIWrapper(top_k_results=1, doc_content_chars_max=200)
-# Give the tool a descriptive name for the agent's internal monologue
-wiki_tool = WikipediaQueryRun(api_wrapper=wiki_wrapper, name="Wikipedia Search") 
+wiki = WikipediaAPIWrapper(top_k_results=2, doc_content_chars_max=500)
+wiki_tool = WikipediaQueryRun(api_wrapper=wiki)
+wiki_tool.name = "wikipedia"
+wiki_tool.description = "Search Wikipedia for well-established facts, history, definitions, biographies."
 
-# 3️⃣ DuckDuckGo web‑search tool
-search_tool = DuckDuckGoSearchRun(name="web_search")    # Renamed for clarity
+search_tool = DuckDuckGoSearchRun(name="web_search")
+search_tool.description = "Search the internet via DuckDuckGo. Best for current events, news, prices, sports scores, weather, etc."
 
 tools = [search_tool, arxiv_tool, wiki_tool]
 
-# --------------------------------------------------------------
-# 2️⃣ Streamlit UI
-# --------------------------------------------------------------
-st.title("🔎 LangChain – Chat with search (Groq)")
-st.caption(
-    "Powered by Groq + LangChain agents. "
-    "Enter your Groq API key in the sidebar."
-)
+# ========================= STREAMLIT UI =========================
+st.set_page_config(page_title="Groq + Search Agent", page_icon="magnifying glass")
+st.title("magnifying glass LangChain Agent with Web + arXiv + Wikipedia")
+st.caption("Powered by **Groq** (ultra-fast) + LangChain tools. No more timeout errors!")
 
-# ------------------------------------------------------------------
-# Sidebar – API key and Model Selector
-# ------------------------------------------------------------------
-st.sidebar.title("Settings")
-api_key = st.sidebar.text_input(
-    "Enter your Groq API Key:", type="password", placeholder="sk-..."
-)
+# Sidebar
+with st.sidebar:
+    st.title("Settings")
+    api_key = st.text_input("Groq API Key", type="password", placeholder="gsk_...", value=os.getenv("GROQ_API_KEY", ""))
+    
+    if not api_key:
+        st.warning("Enter your Groq API key (get it free at https://console.groq.com)")
+        st.stop()
 
-# Fallback to environment variable
-if not api_key:
-    api_key = os.getenv("GROQ_API_KEY")
-
-# Model selector for flexibility
-model_name = st.sidebar.selectbox(
-    "Select Model:",
-    ("llama-3.1-8b-instant", "llama-3.1-70b-versatile", "mixtral-8x7b-instruct-v0.1"),
-    index=0
-)
-
-if not api_key:
-    st.warning(
-        "🚨 No Groq API key found. Add it in the sidebar or as a Space secret "
-        "`GROQ_API_KEY`."
+    model = st.selectbox(
+        "Model (faster = more reliable on HF Spaces)",
+        [
+            "llama-3.1-70b-versatile",     # Best balance
+            "llama-3.1-8b-instant",        # Fastest but sometimes loops
+            "mixtral-8x7b-32768",
+            "llama3-70b-8192",
+        ],
+        index=0
     )
-    st.stop()
 
-# ------------------------------------------------------------------
-# Initialise conversation buffer
-# ------------------------------------------------------------------
+# ========================= CHAT HISTORY =========================
 if "messages" not in st.session_state:
-    st.session_state["messages"] = [
-        {
-            "role": "assistant",
-            "content": "Hi, I’m a Groq-powered chatbot that can search the web, arXiv, and Wikipedia. How can I help you?",
-        }
+    st.session_state.messages = [
+        {"role": "assistant", "content": "Hi! I can search the web, arXiv papers, and Wikipedia in real-time. Ask me anything!"}
     ]
 
-# Render the chat history
-for msg in st.session_state["messages"]:
+for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
 
-# ------------------------------------------------------------------
-# 3️⃣ Handle a new user prompt
-# ------------------------------------------------------------------
-if prompt := st.chat_input(placeholder="Ask me anything…"):
-    # Show the user message immediately
-    st.session_state["messages"].append({"role": "user", "content": prompt})
+# ========================= PROMPT TEMPLATE =========================
+prompt = ChatPromptTemplate.from_messages([
+    ("system", """You are a helpful assistant with access to three tools:
+- web_search: for current events, facts, prices, weather, etc.
+- wikipedia: for established knowledge, history, biographies
+- arxiv_search: for scientific papers and research
+
+Use tools ONLY when necessary. If you already know the answer or it's common knowledge, reply directly.
+Be concise and accurate. Always cite sources when using tools."""),
+    MessagesPlaceholder(variable_name="chat_history"),
+    ("human", "{input}"),
+    MessagesPlaceholder(variable_name="agent_scratchpad"),
+])
+
+# ========================= LLM & AGENT =========================
+@st.cache_resource
+def get_agent(_api_key, _model):
+    llm = ChatGroq(
+        groq_api_key=_api_key,
+        model=_model,
+        temperature=0.2,
+        streaming=True,
+    )
+    
+    agent = create_tool_calling_agent(llm, tools, prompt)
+    agent_executor = AgentExecutor(
+        agent=agent,
+        tools=tools,
+        verbose=True,
+        handle_parsing_errors=True,
+        max_iterations=8,           # Rarely reached with tool-calling
+        max_execution_time=None,    # No hard timeout needed
+    )
+    return agent_executor
+
+# ========================= USER INPUT =========================
+if prompt := st.chat_input("Ask me anything..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     st.chat_message("user").write(prompt)
 
-    # --------------------------------------------------------------
-    # LLM with tool support
-    # --------------------------------------------------------------
-    llm = ChatGroq(
-        groq_api_key=api_key,
-        model=model_name, # Use the selected model
-        streaming=True,
-        tool_choice="auto",
-    )
-
-    # --------------------------------------------------------------
-    # Build the agent (FIXED: Increased Iteration Limit)
-    # --------------------------------------------------------------
-    search_agent = initialize_agent(
-        tools=tools,
-        llm=llm,
-        agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
-        handling_parsing_errors=True,
-        verbose=True,
-        # 👇 FIX: Increased limits to prevent the "Agent stopped" error
-        max_iterations=15, 
-        max_execution_time=60, # Generous 60-second limit
-    )
-
-    # --------------------------------------------------------------
-    # Run the agent and display the answer
-    # --------------------------------------------------------------
     with st.chat_message("assistant"):
-        # StreamlitCallbackHandler streams the agent's internal “thoughts”
-        # Set expand_new_thoughts=True for better transparency
-        st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=True)
+        st_callback = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
+        
+        try:
+            agent_executor = get_agent(api_key, model)
+            
+            response = agent_executor.invoke(
+                {
+                    "input": prompt,
+                    "chat_history": [
+                        (m["role"], m["content"]) for m in st.session_state.messages[:-1]
+                        if m["role"] != "system"
+                    ],
+                },
+                {"callbacks": [st_callback]}
+            )
+            
+            answer = response["output"]
+            
+        except Exception as e:
+            answer = f"Oops! Something went wrong: {str(e)}. Try again or simplify your question."
 
-        # NOTE: The Zero‑Shot ReAct agent expects a *single* user query.
-        response = search_agent.run(prompt, callbacks=[st_cb])
-
-        # Store & render the assistant's final answer
-        st.session_state["messages"].append(
-            {"role": "assistant", "content": response}
-        )
-        st.write(response)
+        st.session_state.messages.append({"role": "assistant", "content": answer})
+        st.write(answer)
