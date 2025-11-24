@@ -28,7 +28,7 @@ Try more LangChain 🤝 Streamlit Agent examples at [github.com/langchain-ai/str
 
 ## Sidebar for settings
 st.sidebar.title("Settings")
-api_key=st.sidebar.text_input("Enter your Groq API Key:",type="password")
+#api_key=st.sidebar.text_input("Enter your Groq API Key:",type="password")
 
 if "messages" not in st.session_state:
     st.session_state["messages"]=[
@@ -55,4 +55,5 @@ if prompt:=st.chat_input(placeholder="What is machine learning?"):
         response=search_agent.run(st.session_state.messages,callbacks=[st_cb])
         st.session_state.messages.append({'role':'assistant',"content":response})
         st.write(response)
+
 
