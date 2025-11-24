@@ -32,6 +32,8 @@ numexpr
 huggingface_hub
 ddgs
 langchain-ollama
+langchain-core
+langchain-google-genai
 
 
 
