@@ -30,6 +30,8 @@ unstructured
 pytube
 numexpr
 huggingface_hub
+ddgs
+
 
 
 
