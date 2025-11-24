@@ -85,7 +85,8 @@ if prompt := st.chat_input("Ask me anything…"):
     )
 
     # Create ReAct agent
-    agent = create_react_agent(llm, tools)
+    from langchain.agents.react.prompt import REACT_PROMPT
+    agent = create_react_agent(llm=llm, tools=tools, prompt=REACT_PROMPT)
 
     search_agent = AgentExecutor(
         agent=agent,
