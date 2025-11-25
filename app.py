@@ -62,13 +62,13 @@ if prompt := st.chat_input(placeholder="What is machine learning?"):
         tools=tools, 
         verbose=True, 
         handle_parsing_errors=True,
-        max_iterations=10  # Increase limit to prevent early stopping
+        max_iterations=15  # Increased limit to prevent early stopping
     )
 
     with st.chat_message("assistant"):
         st_cb = StreamlitCallbackHandler(st.container(), expand_new_thoughts=False)
         
-        # Pass ONLY the user input, not the whole history dictionary which confuses the ReAct agent
+        # Fix: Pass ONLY the user input string, not the whole history list
         response = agent_executor.invoke(
             {"input": prompt},
             {"callbacks": [st_cb]}
